@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能图像分类系统</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-container { margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .result-container { margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; display: none; }
+        .btn { background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        .prob-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
+    </style>
+</head>
+<body>
+    <h1 style="color: #333; text-align: center;">智能图像分类系统</h1>
+    <div class="form-container">
+        <form action="/predict" method="POST" enctype="multipart/form-data">
+            <div style="margin-bottom: 15px;">
+                <label for="image">选择一张图片:</label>
+                <input type="file" id="image" name="image" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn">开始分类</button>
+        </form>
+    </div>
+    
+    <div id="result" class="result-container">
+        <h2 style="color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 10px;">分类结果</h2>
+        <p><strong>预测类别:</strong> <span id="class-name" style="color: #e74c3c; font-weight: bold;"></span></p>
+        <p><strong>置信度:</strong> <span id="confidence" style="color: #3498db; font-weight: bold;"></span></p>
+        <p><strong>推理时间:</strong> <span id="inference-time" style="color: #f39c12; font-weight: bold;"></span> 秒</p>
+        
+        <h3 style="color: #2c3e50; margin-top: 20px;">各类别概率:</h3>
+        <div id="prob-list" style="margin-left: 10px;"></div>
+    </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const formData = new FormData(form);
+            const resultDiv = document.getElementById('result');
+            
+            // 显示加载状态
+            resultDiv.style.display = 'block';
+            document.getElementById('class-name').textContent = '加载中...';
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('API请求失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('class-name').textContent = data.class;
+                document.getElementById('confidence').textContent = (data.confidence * 100).toFixed(2) + '%';
+                document.getElementById('inference-time').textContent = data.inference_time.toFixed(4);
+                
+                const probList = document.getElementById('prob-list');
+                probList.innerHTML = '';
+                for (const [classname, prob] of Object.entries(data.all_probs)) {
+                    const item = document.createElement('div');
+                    item.className = 'prob-item';
+                    item.innerHTML = `<span>${classname}</span> <span>${(prob * 100).toFixed(2)}%</span>`;
+                    probList.appendChild(item);
+                }
+            })
+            .catch(error => {
+                console.error('错误:', error);
+                document.getElementById('class-name').textContent = '分类失败，请重试';
+                alert('分类过程中出现错误，请检查图像格式或重试');
+            });
+        });
+    </script>
+</body>
+</html>
