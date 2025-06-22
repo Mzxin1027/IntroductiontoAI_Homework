@@ -5,41 +5,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Microsoft YaHei', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
         .form-container { margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
         .result-container { margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; display: none; }
+        .preview-container { margin-top: 20px; padding: 15px; border: 1px dashed #ddd; border-radius: 8px; text-align: center; background-color: #f9f9f9; }
+        .preview-container img { max-width: 100%; max-height: 300px; border-radius: 4px; margin-top: 10px; }
         .btn { background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
         .prob-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
     </style>
 </head>
 <body>
     <h1 style="color: #333; text-align: center;">智能图像分类系统</h1>
+    
     <div class="form-container">
         <form action="/predict" method="POST" enctype="multipart/form-data">
             <div style="margin-bottom: 15px;">
                 <label for="image">选择一张图片:</label>
                 <input type="file" id="image" name="image" accept="image/*" required>
             </div>
+          
+            <div class="preview-container" id="preview-container">
+             
+                <div id="image-preview" style="min-height: 150px;"></div>
+            </div>
+            
             <button type="submit" class="btn">开始分类</button>
         </form>
     </div>
     
     <div id="result" class="result-container">
         <h2 style="color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 10px;">分类结果</h2>
+        <div class="result-image-container" style="margin: 20px 0; text-align: center;">
+            <p><strong>上传的图片:</strong></p>
+            <img id="result-image" style="max-width: 100%; max-height: 250px; border-radius: 4px;" />
+        </div>
         <p><strong>预测类别:</strong> <span id="class-name" style="color: #e74c3c; font-weight: bold;"></span></p>
         <p><strong>置信度:</strong> <span id="confidence" style="color: #3498db; font-weight: bold;"></span></p>
-        <p><strong>推理时间:</strong> <span id="inference-time" style="color: #f39c12; font-weight: bold;"></span> 秒</p>
-        
-        <h3 style="color: #2c3e50; margin-top: 20px;">各类别概率:</h3>
         <div id="prob-list" style="margin-left: 10px;"></div>
     </div>
 
     <script>
-        document.querySelector('form').addEventListener('submit', function(e) {
+        
+        const imageInput = document.getElementById('image');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const resultImage = document.getElementById('result-image');
+        const form = document.querySelector('form');
+        const resultDiv = document.getElementById('result');
+        
+        // 图片预览功能
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // 清空之前的预览
+                    imagePreview.innerHTML = '';
+                    
+                    // 创建图片元素并显示
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+              
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '200px';
+                    img.style.borderRadius = '4px';
+                    
+                    imagePreview.appendChild(img);
+                    
+                    // 在结果区域也显示图片
+                    resultImage.src = e.target.result;
+                }
+                
+                reader.readAsDataURL(file);
+            }
+        });
+        
+     
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
-            const form = this;
             const formData = new FormData(form);
-            const resultDiv = document.getElementById('result');
             
             // 显示加载状态
             resultDiv.style.display = 'block';
@@ -58,7 +103,6 @@
             .then(data => {
                 document.getElementById('class-name').textContent = data.class;
                 document.getElementById('confidence').textContent = (data.confidence * 100).toFixed(2) + '%';
-                document.getElementById('inference-time').textContent = data.inference_time.toFixed(4);
                 
                 const probList = document.getElementById('prob-list');
                 probList.innerHTML = '';
